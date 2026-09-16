@@ -19,6 +19,7 @@
     --series-orange:  #eb6834;
     --series-aqua:    #1baf7a;
     --series-yellow:  #eda100;
+    --series-magenta: #e87ba4;
     --series-red:     #e34948;
     --good:           #0ca30c;
     --warning:        #fab219;
@@ -40,6 +41,7 @@
       --series-orange:  #d95926;
       --series-aqua:    #199e70;
       --series-yellow:  #c98500;
+      --series-magenta: #d55181;
       --series-red:     #e66767;
       --good:           #0ca30c;
       --warning:        #fab219;
@@ -131,6 +133,17 @@
   .bar-fill.pos { background: var(--series-blue); }
   .bar-fill.neg { background: var(--series-red); }
   .bar-row .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .donut-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: center; }
+  .donut-svg-wrap { position: relative; flex: 0 0 auto; }
+  .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
+  .donut-center .value { font-size: 20px; font-weight: 700; }
+  .donut-center .label { font-size: 11px; color: var(--text-secondary); }
+  .donut-legend { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 240px; }
+  .legend-row { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 10px; align-items: center; font-size: 13px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-row .name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-row .amount { font-variant-numeric: tabular-nums; color: var(--text-secondary); text-align: right; }
+  .legend-row .pct { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; width: 52px; }
   .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
   .filters input[type=text], .filters select {
     padding: 7px 9px; border-radius: 6px; border: 1px solid var(--border);
@@ -228,6 +241,12 @@
         <h2>Résultats — Contribution par produit</h2>
         <div class="stat-grid" id="statGrid"></div>
         <div id="reconciliation"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Répartition du chiffre d'affaires par produit</h3>
+        <p class="hint" style="margin-bottom:14px;">Les 5 plus gros produits sont détaillés, le reste est regroupé sous « Autres » — le tableau ci-dessous donne le détail complet de chaque produit.</p>
+        <div class="donut-wrap" id="revenueDonut"></div>
       </div>
 
       <div class="card">
@@ -825,9 +844,104 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     });
     recon.appendChild(box);
 
+    renderRevenueDonut();
     renderChart();
     renderCategoryFilter();
     renderResultsTable();
+  }
+
+  var DONUT_COLORS = ["var(--series-blue)", "var(--series-orange)", "var(--series-aqua)", "var(--series-yellow)", "var(--series-magenta)"];
+  var DONUT_OTHER_COLOR = "var(--muted)";
+
+  function donutArcPath(cx, cy, rOuter, rInner, startAngle, endAngle) {
+    // angles in radians, 0 = 12 o'clock, clockwise
+    function pt(r, a) { return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
+    var largeArc = (endAngle - startAngle) % (2 * Math.PI) > Math.PI ? 1 : 0;
+    var p1 = pt(rOuter, startAngle), p2 = pt(rOuter, endAngle);
+    var p3 = pt(rInner, endAngle), p4 = pt(rInner, startAngle);
+    return [
+      "M", p1[0], p1[1],
+      "A", rOuter, rOuter, 0, largeArc, 1, p2[0], p2[1],
+      "L", p3[0], p3[1],
+      "A", rInner, rInner, 0, largeArc, 0, p4[0], p4[1],
+      "Z"
+    ].join(" ");
+  }
+
+  function renderRevenueDonut() {
+    var wrap = $("#revenueDonut");
+    wrap.innerHTML = "";
+    var products = state.results.products.filter(function (p) { return p.revenue !== 0; })
+      .slice().sort(function (a, b) { return b.revenue - a.revenue; });
+    var totalRevenue = state.results.totals.revenue;
+    if (totalRevenue === 0 || products.length === 0) {
+      wrap.appendChild(el("p", { class: "hint" }, ["Pas de chiffre d'affaires à représenter."]));
+      return;
+    }
+    var MAX_SLICES = 5;
+    var top = products.slice(0, MAX_SLICES);
+    var rest = products.slice(MAX_SLICES);
+    var restSum = rest.reduce(function (s, p) { return s + p.revenue; }, 0);
+    var slices = top.map(function (p, i) {
+      return { name: p.ref + " — " + (p.description || ""), value: p.revenue, color: DONUT_COLORS[i] };
+    });
+    if (restSum > 0) {
+      slices.push({ name: "Autres (" + rest.length + " produit" + (rest.length > 1 ? "s" : "") + ")", value: restSum, color: DONUT_OTHER_COLOR });
+    }
+
+    var size = 220, cx = size / 2, cy = size / 2, rOuter = 100, rInner = 62;
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", size); svg.setAttribute("height", size);
+    svg.setAttribute("viewBox", "0 0 " + size + " " + size);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Répartition du chiffre d'affaires par produit");
+
+    var angle = 0;
+    var gapRad = 0.012; // ~2px visual gap between slices
+    slices.forEach(function (s) {
+      var frac = s.value / totalRevenue;
+      var start = angle + gapRad / 2;
+      var end = angle + frac * 2 * Math.PI - gapRad / 2;
+      if (end < start) end = start;
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", donutArcPath(cx, cy, rOuter, rInner, start, end));
+      path.setAttribute("style", "fill:" + s.color + ";");
+      svg.appendChild(path);
+      var mid = (start + end) / 2;
+      if (frac >= 0.08) {
+        var lx = cx + (rOuter + rInner) / 2 * Math.sin(mid);
+        var ly = cy - (rOuter + rInner) / 2 * Math.cos(mid);
+        var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", lx); text.setAttribute("y", ly);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("dominant-baseline", "middle");
+        text.setAttribute("fill", "#ffffff");
+        text.setAttribute("font-size", "12");
+        text.setAttribute("font-weight", "700");
+        text.textContent = fmtPct(frac);
+        svg.appendChild(text);
+      }
+      angle += frac * 2 * Math.PI;
+    });
+
+    var svgWrap = el("div", { class: "donut-svg-wrap" }, [svg]);
+    svgWrap.appendChild(el("div", { class: "donut-center" }, [
+      el("div", { class: "value" }, [fmtEUR(totalRevenue)]),
+      el("div", { class: "label" }, ["CA total"])
+    ]));
+
+    var legend = el("div", { class: "donut-legend" });
+    slices.forEach(function (s) {
+      legend.appendChild(el("div", { class: "legend-row" }, [
+        el("div", { class: "legend-swatch", style: "background:" + s.color + ";" }),
+        el("div", { class: "name", title: s.name }, [s.name]),
+        el("div", { class: "amount" }, [fmtEUR(s.value)]),
+        el("div", { class: "pct" }, [fmtPct(s.value / totalRevenue)])
+      ]));
+    });
+
+    wrap.appendChild(svgWrap);
+    wrap.appendChild(legend);
   }
 
   function renderChart() {

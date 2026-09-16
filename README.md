@@ -42,7 +42,8 @@ La lecture/écriture des fichiers Excel utilise la librairie [SheetJS](https://s
    Une classification par défaut est proposée automatiquement (par reconnaissance de
    mots-clés dans le libellé du poste) et reste modifiable à tout moment.
 4. **Résultats** — tableau de contribution par produit (CA, COGS, marge directe,
-   coûts variables alloués, contribution en valeur et en %), graphique des principales
+   coûts variables alloués, contribution en valeur et en %), camembert de répartition
+   du CA par produit (5 plus gros produits + "Autres"), graphique des principales
    contributions, réconciliation avec le PNL, export Excel/CSV.
 
 ## Méthode de calcul
