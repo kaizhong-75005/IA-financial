@@ -44,7 +44,15 @@ La lecture/écriture des fichiers Excel utilise la librairie [SheetJS](https://s
 4. **Résultats** — tableau de contribution par produit (CA, COGS, marge directe,
    coûts variables alloués, contribution en valeur et en %), camembert de répartition
    du CA par produit (5 plus gros produits + "Autres"), graphique des principales
-   contributions, réconciliation avec le PNL, export Excel/CSV.
+   contributions, réconciliation avec le PNL, export **Excel (.xlsx)**, **CSV** ou
+   **PDF**.
+
+   Les exports Excel et PDF incluent une **annexe méthodologique** : les formules de
+   calcul, les totaux, et le détail de la classification retenue pour chaque poste du
+   PNL (type + clé de répartition) — pour pouvoir justifier les chiffres a posteriori.
+   L'export PDF passe par la fonction d'impression du navigateur ("Exporter en PDF") ;
+   dans la boîte de dialogue d'impression, choisir la destination **Enregistrer au
+   format PDF**.
 
 ## Méthode de calcul
 
