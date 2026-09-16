@@ -76,3 +76,15 @@ total des charges) pour détecter d'éventuels écarts de mapping ou de classifi
   défaut" permet de repartir de la classification automatique.
 - Cette mémorisation reste locale au navigateur/poste utilisé ; elle n'est pas
   partagée ni synchronisée.
+
+## Licence
+
+Ce projet est distribué sous licence **GNU Affero General Public License v3.0
+(AGPL-3.0)** — voir le fichier [`LICENSE`](LICENSE). C'est une licence copyleft
+« contaminante » : toute personne qui redistribue ce code, le modifie, ou le fait
+tourner comme service accessible sur un réseau, doit proposer le code source
+(y compris ses modifications) sous la même licence aux utilisateurs de ce service.
+
+`index.html` embarque [SheetJS](https://sheetjs.com/) (Copyright SheetJS LLC),
+distribué sous licence Apache 2.0 — voir
+[`THIRD_PARTY_LICENSES_SheetJS_Apache-2.0.txt`](THIRD_PARTY_LICENSES_SheetJS_Apache-2.0.txt).
